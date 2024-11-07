@@ -1,11 +1,93 @@
 body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    background-color: #f5f5f5;
-  }
-  
-  .App {
-    text-align: center;
-    margin: 20px;
-  }
-  
+  font-family: Arial, sans-serif;
+  background-color: #121212;
+  color: white;
+  padding: 20px;
+  margin: 0;
+  overflow: hidden;
+}
+
+.App {
+  text-align: center;
+  position: relative;
+}
+
+h1 {
+  font-size: 3rem;
+  color: #00d9ff;
+}
+
+h2, h3, h4 {
+  color: #ddd;
+}
+
+button {
+  padding: 10px 20px;
+  border: none;
+  background-color: #00d9ff;
+  color: white;
+  cursor: pointer;
+  margin: 10px;
+  font-size: 1.2rem;
+  border-radius: 5px;
+}
+
+button:hover {
+  background-color: #0098cc;
+}
+
+button:disabled {
+  background-color: #333;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+}
+
+li {
+  padding: 10px;
+  margin: 5px;
+  background-color: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+}
+
+button.delete {
+  background-color: red;
+  color: white;
+  border: none;
+  border-radius: 5px;
+}
+
+.delete:hover {
+  background-color: #b30000;
+}
+
+.social-media a {
+  margin: 10px;
+  color: #00d9ff;
+  font-size: 1.5rem;
+}
+
+.settings {
+  margin-top: 20px;
+}
+
+.settings label {
+  color: #fff;
+  font-size: 1.1rem;
+}
+
+footer {
+  position: absolute;
+  bottom: 20px;
+  width: 100%;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #bbb;
+}
+
+footer p {
+  margin: 0;
+}
