@@ -15,4 +15,5 @@ exports.handleAssistantRequest = async (req, res) => {
     });
 
     res.json({ response: chatGptResponse.data.choices[0].message.content });
+    
 };
