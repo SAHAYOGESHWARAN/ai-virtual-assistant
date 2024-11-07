@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 import Particles from 'react-tsparticles';
@@ -6,8 +6,6 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTwitter, faFacebook, faLinkedin, faGithub } from '@fortawesome/free-brands-svg-icons';
 import './App.css';
 import backgroundMusic from './assets/background.mp3';
-
-
 
 function App() {
     const [isLoading, setIsLoading] = useState(false);
@@ -27,13 +25,20 @@ function App() {
     });
     const [batteryLevel, setBatteryLevel] = useState(null);
 
-    const audio = new Audio(backgroundMusic);
-    audio.loop = true;
+    const listeningTimer = useRef(null);
+
+    const audio = useRef(new Audio(backgroundMusic));
+    audio.current.loop = true;
 
     const handlePlayMusic = () => {
-        audio.play().catch((error) => {
+        audio.current.play().catch((error) => {
             console.error("Audio playback failed:", error);
         });
+    };
+
+    const stopListening = () => {
+        setIsListening(false);
+        clearTimeout(listeningTimer.current);
     };
 
     useEffect(() => {
@@ -45,17 +50,20 @@ function App() {
     }, [reminders]);
 
     useEffect(() => {
-        if (greeting) {
-            speak(greeting);
-        }
-    }, [greeting]);
+        const hour = new Date().getHours();
+        if (hour < 12) setGreeting("Good morning!");
+        else if (hour < 18) setGreeting("Good afternoon!");
+        else setGreeting("Good evening!");
+
+        // Automatically greet user with a voice message
+        if (greeting) speak(greeting);
+    }, []);
 
     useEffect(() => {
-        // Get battery level on component mount
         const getBatteryLevel = async () => {
             if (navigator.getBattery) {
                 const battery = await navigator.getBattery();
-                setBatteryLevel((battery.level * 100).toFixed(0)); // Get battery percentage
+                setBatteryLevel((battery.level * 100).toFixed(0));
             }
         };
         getBatteryLevel();
@@ -91,13 +99,6 @@ function App() {
         }
     };
 
-    const getGreeting = () => {
-        const hour = new Date().getHours();
-        if (hour < 12) return "Good morning!";
-        if (hour < 18) return "Good afternoon!";
-        return "Good evening!";
-    };
-
     const speak = useCallback((message) => {
         const utterance = new SpeechSynthesisUtterance(message);
         const voices = window.speechSynthesis.getVoices();
@@ -108,7 +109,9 @@ function App() {
 
     const handleListen = () => {
         setIsListening(true);
-        setGreeting(getGreeting());
+        clearTimeout(listeningTimer.current);
+        listeningTimer.current = setTimeout(stopListening, 15000); // Auto-stop listening after 15 seconds
+
         startListening();
     };
 
@@ -184,7 +187,6 @@ function App() {
     };
 
     const getChatGPTResponse = async (message) => {
-        console.log("print", process.env.REACT_APP_OPENAI_API_KEY)
         const apiKey = process.env.REACT_APP_OPENAI_API_KEY;
 
         if (!apiKey) {
@@ -243,7 +245,7 @@ function App() {
                         size: {
                             value: 3,
                         },
-                                                move: {
+                        move: {
                             speed: 1,
                             direction: "none",
                             random: false,
@@ -256,107 +258,83 @@ function App() {
                         line_linked: {
                             enable: true,
                             distance: 150,
-                            color: "#00d9ff",
+                            color: "#0000FF", // Blue color for theme
                             opacity: 0.4,
                             width: 1,
-                        },
-                    },
-                    interactivity: {
-                        events: {
-                            onhover: {
-                                enable: true,
-                                mode: "repulse",
-                            },
-                            onclick: {
-                                enable: true,
-                                mode: "push",
-                            },
-                            resize: true,
-                        },
-                        modes: {
-                            grab: {
-                                distance: 400,
-                                line_linked: {
-                                    opacity: 1,
-                                },
-                            },
-                            repulse: {
-                                distance: 200,
-                                duration: 0.4,
-                            },
-                            push: {
-                                particles_nb: 4,
-                            },
-                            remove: {
-                                particles_nb: 2,
-                            },
                         },
                     },
                     retina_detect: true,
                 }}
             />
 
-            <h1>Welcome to Your AI Assistant</h1>
-            <div className="battery-status">
-                <h4>Battery Level: {batteryLevel !== null ? `${batteryLevel}%` : 'Loading...'}</h4>
-            </div>
+            <header className="header">
+                <h1>{greeting}</h1>
+                <button onClick={handlePlayMusic} className="music-button">Play Background Music</button>
+                <button onClick={handleListen} className={`listen-button ${isListening ? 'active' : ''}`}>
+                    {isListening ? 'Listening...' : 'Start Listening'}
+                </button>
+                <button onClick={clearChatHistory} className="clear-button">Clear Chat History</button>
+            </header>
 
-            <motion.button
-                whileHover={{ scale: 1.1, boxShadow: "0 0 25px #00d9ff", transition: { duration: 0.3 } }}
-                whileTap={{ scale: 0.95 }}
-                disabled={isLoading || isListening} // Disable when loading or listening
-                onClick={handleListen} // Call the listening function when clicked
-            >
-                {isListening ? 'Listening...' : 'Talk to Me!'}
-            </motion.button>
-
-            <div className="chat-box">
-                <h2>Chat History</h2>
-                <ul>
-                    {chatHistory.map((msg, index) => (
-                        <li key={index}>{msg}</li>
+            <main className="chat-container">
+                <div className="messages">
+                    {chatHistory.map((message, index) => (
+                        <motion.div 
+                            key={index} 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            exit={{ opacity: 0 }}
+                            className={message.startsWith("You:") ? "user-message" : "assistant-message"}
+                        >
+                            {message}
+                        </motion.div>
                     ))}
-                    {loading && <li>Assistant is typing...</li>}
-                </ul>
-                <button onClick={clearChatHistory}>Clear Chat History</button>
-            </div>
+                </div>
+                {loading && <div className="loading">Assistant is typing...</div>}
+            </main>
 
-            <div className="robot">
-                <div className="antenna"></div>
-                <div className="mouth"></div>
-            </div>
-
-            <div>
-                <h3>Reminders</h3>
-                <ul>
+            <aside className="sidebar">
+                <h2>Assistant Controls</h2>
+                <div>
+                    <label>Choose Voice Mode:</label>
+                    <select value={selectedVoice} onChange={handleVoiceChange}>
+                        <option value="">Default</option>
+                        <option value="Google US English Male">Male Voice</option>
+                        <option value="Google US English Female">Female Voice</option>
+                    </select>
+                </div>
+                <div className="reminders">
+                    <h2>Reminders</h2>
                     {reminders.map((reminder, index) => (
-                        <li key={index}>
-                            {reminder} 
+                        <div key={index} className="reminder">
+                            <p>{reminder}</p>
                             <button onClick={() => deleteReminder(index)}>Delete</button>
-                        </li>
+                        </div>
                     ))}
-                </ul>
-            </div>
-            <button onClick={handlePlayMusic}>Play Background Music</button> {/* Add button to play music */}
+                </div>
+                {batteryLevel && <p>Battery Level: {batteryLevel}%</p>}
+                {weatherData && <p>{weatherData}</p>}
+            </aside>
 
-            <div className="social-media">
-                <h3>Follow Us</h3>
-                <a href="https://twitter.com" target="_blank" rel="noopener noreferrer">
-                    <FontAwesomeIcon icon={faTwitter} />
-                </a>
-                <a href="https://facebook.com" target="_blank" rel="noopener noreferrer">
-                    <FontAwesomeIcon icon={faFacebook} />
-                </a>
-                <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer">
-                    <FontAwesomeIcon icon={faLinkedin} />
-                </a>
-                <a href="https://github.com" target="_blank" rel="noopener noreferrer">
-                    <FontAwesomeIcon icon={faGithub} />
-                </a>
-            </div>
+            <footer className="footer">
+                <div className="social-icons">
+                    <a href="https://twitter.com/" target="_blank" rel="noopener noreferrer">
+                        <FontAwesomeIcon icon={faTwitter} size="2x" />
+                    </a>
+                    <a href="https://facebook.com/" target="_blank" rel="noopener noreferrer">
+                        <FontAwesomeIcon icon={faFacebook} size="2x" />
+                    </a>
+                    <a href="https://linkedin.com/" target="_blank" rel="noopener noreferrer">
+                        <FontAwesomeIcon icon={faLinkedin} size="2x" />
+                    </a>
+                    <a href="https://github.com/" target="_blank" rel="noopener noreferrer">
+                        <FontAwesomeIcon icon={faGithub} size="2x" />
+                    </a>
+                </div>
+                <p>AI Assistant © 2024</p>
+            </footer>
         </div>
     );
 }
 
 export default App;
-
